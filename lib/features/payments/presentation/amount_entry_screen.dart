@@ -1,0 +1,1147 @@
+import '../../../core/routing/routing.dart';
+import '../../../core/util/encryption_util.dart';
+import '../../../core/widgets/otp_bottom_sheet.dart';
+import '../../../core/storage/preferences_manager.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../core/theme/app_themes.dart';
+import '../../../core/theme/bloc/theme_bloc.dart';
+import '../cubit/transaction_type_cubit.dart';
+import '../data/transaction_transfer/transaction_transfer_model.dart';
+import '../data/transaction_transfer/transaction_transfer_datasource.dart';
+import '../data/transaction_transfer/transaction_transfer_repository_impl.dart';
+import 'package:http/http.dart' as http;
+import '../../../core/token/refresh_token_handler.dart';
+import '../../../core/token/data/refresh_token_datasource.dart';
+import '../../../core/routing/navigation_service.dart';
+import 'dart:async';
+import 'transaction_details_screen.dart';
+import '../../../core/util/crypto/aes_gcm_util.dart';
+import 'package:image_picker/image_picker.dart';
+import 'face_capture_screen.dart';
+import 'dart:typed_data';
+import 'dart:convert';
+
+class AmountEntryScreen extends StatefulWidget {
+  const AmountEntryScreen(
+      {super.key,
+      required this.type,
+      required this.amount,
+      required this.receiver,
+      required this.receiverNumber,
+      this.userId});
+  final TransactionType type;
+  final double amount;
+  final String receiver;
+  final String receiverNumber;
+  final String? userId;
+
+  @override
+  State<AmountEntryScreen> createState() => _AmountEntryScreenState();
+}
+
+class _AmountEntryScreenState extends State<AmountEntryScreen> {
+  String selectedCategory = 'Others';
+  final FocusNode _noteFocusNode = FocusNode();
+  final FocusNode _amountFocusNode = FocusNode();
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Debug the received userId (not displayed to user as requested)
+    debugPrint("______________AMOUNT ENTRY SCREEN INIT____________");
+    debugPrint("Amount: ${widget.amount}");
+    debugPrint("Receiver: ${widget.receiver}");
+    debugPrint("Receiver Number: ${widget.receiverNumber}");
+    debugPrint("Transaction Type: ${widget.type}");
+    debugPrint("User ID: ${widget.userId}");
+    
+    // Check if PIN is stored, if not set a test PIN for development
+    _checkAndSetTestPin();
+    
+    // Determine if this is from QR scanning or payments screen
+    final isFromQRScan = widget.amount == 0.0;
+    
+    if (isFromQRScan) {
+      // From QR scanning: no pre-filled amount, focus on amount field
+      _amountController.text = '';
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _amountFocusNode.requestFocus();
+      });
+    } else {
+      // From payments screen: pre-fill amount, focus on note field
+      _amountController.text = widget.amount.toString();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _noteFocusNode.requestFocus();
+      });
+    }
+  }
+
+  // Helper method to check and set test PIN for development
+  Future<void> _checkAndSetTestPin() async {
+    try {
+      final preferencesManager = await PreferencesManager.getInstance();
+      final storedPin = preferencesManager.userPin;
+      
+      if (storedPin == null || storedPin.isEmpty) {
+        // Set a test PIN for development (111111)
+        final testPin = "111111";
+        final encryptedTestPin = EncryptionUtil.encryptFunction(testPin);
+        await preferencesManager.setUserPin(encryptedTestPin);
+        debugPrint("🔐 Test PIN set for development: $testPin");
+        debugPrint("🔐 Encrypted test PIN: $encryptedTestPin");
+      } else {
+        debugPrint("🔐 PIN already stored: $storedPin");
+      }
+    } catch (e) {
+      debugPrint("❌ Error checking/setting test PIN: $e");
+    }
+  }
+
+  // Helper method to get current amount
+  double get currentAmount {
+    final text = _amountController.text.replaceAll('₹ ', '').trim();
+    return double.tryParse(text) ?? 0.0;
+  }
+
+  // Helper method to validate amount
+  bool get isAmountValid {
+    final text = _amountController.text.trim();
+    
+    // Check for various zero formats
+    if (text == '0' || text == '0.0' || text == '0.00' || text == '000000' || text == '000000.00') {
+      return false;
+    }
+    
+    return currentAmount > 0;
+  }
+  
+  // Helper method to get validation error message
+  String? get amountValidationError {
+    final text = _amountController.text.trim();
+    
+    if (text.isEmpty) {
+      return 'Please enter amount';
+    }
+    
+    if (text == '0' || text == '0.0' || text == '0.00' || text == '000000' || text == '000000.00') {
+      return 'Please enter amount';
+    }
+    
+    if (currentAmount <= 0) {
+      return 'Please enter a valid amount';
+    }
+    
+    return null;
+  }
+
+  // Helper method to validate PIN format
+  bool _isValidPinFormat(String pin) {
+    final trimmedPin = pin.trim();
+    
+    // Check for empty or zero values
+    if (trimmedPin.isEmpty || 
+        trimmedPin == '0' || 
+        trimmedPin == '0.0' || 
+        trimmedPin == '0.00' ||
+        trimmedPin == '000000' ||
+        trimmedPin == '000000.00') {
+      return false;
+    }
+    
+    // Check if PIN is exactly 6 digits
+    if (trimmedPin.length != 6 || !trimmedPin.contains(RegExp(r'^\d{6}$'))) {
+      return false;
+    }
+    
+    return true;
+  }
+  
+  // Helper method to get PIN validation error message
+  String? _getPinValidationError(String pin) {
+    final trimmedPin = pin.trim();
+    
+    if (trimmedPin.isEmpty) {
+      return 'Please enter PIN';
+    }
+    
+    if (trimmedPin == '0' || trimmedPin == '0.0' || trimmedPin == '0.00' || 
+        trimmedPin == '000000' || trimmedPin == '000000.00') {
+      return 'Please enter a valid PIN';
+    }
+    
+    if (trimmedPin.length != 6) {
+      return 'PIN must be 6 digits';
+    }
+    
+    if (!trimmedPin.contains(RegExp(r'^\d{6}$'))) {
+      return 'PIN must contain only numbers';
+    }
+    
+    return null;
+  }
+
+  // Helper method to get remarks for the transaction
+  String? get remarks {
+    final noteText = _noteController.text.trim();
+    
+    // If note is not empty, use the note text
+    if (noteText.isNotEmpty) {
+      return noteText;
+    }
+    
+    // If note is empty but category is not "Others", use the category
+    if (selectedCategory != 'Others') {
+      return selectedCategory;
+    }
+    
+    // If both note is empty and category is "Others", return null
+    return null;
+  }
+
+  // Helper method to validate PIN
+  Future<bool> _validatePin(String pin) async {
+    try {
+      // First validate PIN format
+      if (!_isValidPinFormat(pin)) {
+        final errorMessage = _getPinValidationError(pin);
+        debugPrint("❌ PIN validation failed: $errorMessage");
+        return false;
+      }
+
+      // Get user's mobile number from preferences
+      final preferencesManager = await PreferencesManager.getInstance();
+      final userMobile = preferencesManager.userMobile;
+      
+      if (userMobile == null || userMobile.isEmpty) {
+        debugPrint("❌ User mobile not found in preferences");
+        return false;
+      }
+
+      // Encrypt the entered PIN
+      final encryptedPin = EncryptionUtil.encryptFunction(pin);
+      debugPrint("🔐 Entered PIN: $pin");
+      debugPrint("🔐 Encrypted PIN: $encryptedPin");
+      debugPrint("🔐 User Mobile: $userMobile");
+
+      // Get stored encrypted PIN from preferences
+      final storedEncryptedPin = preferencesManager.userPin;
+      debugPrint("🔐 Stored Encrypted PIN: $storedEncryptedPin");
+
+      if (storedEncryptedPin == null || storedEncryptedPin.isEmpty) {
+        debugPrint("❌ No stored PIN found");
+        return false;
+      }
+
+      // Compare encrypted PINs
+      if (encryptedPin == storedEncryptedPin) {
+        debugPrint("✅ PIN validation successful - PINs match");
+        return true;
+      } else {
+        debugPrint("❌ PIN validation failed - PINs do not match");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("❌ PIN validation error: $e");
+      return false;
+    }
+  }
+
+  // Helper method to process transaction response
+  Future<void> _processTransactionResponse(TransactionTransferResponseModel? transactionResponse) async {
+    // Debug the response
+    debugPrint("🔍 Transaction Response Analysis:");
+    debugPrint("Response: $transactionResponse");
+    debugPrint("Response is null: ${transactionResponse == null}");
+    if (transactionResponse != null) {
+      debugPrint("Status: '${transactionResponse.status}'");
+      debugPrint("Code: ${transactionResponse.code}");
+      debugPrint("Message: '${transactionResponse.message}'");
+      debugPrint("Data: ${transactionResponse.data}");
+    }
+  
+    // Check success conditions
+    final isStatusSuccess = transactionResponse?.status.toLowerCase() == 'success';
+    final isCodeSuccess = transactionResponse?.code == 1;
+    debugPrint("Is Status Success: $isStatusSuccess");
+    debugPrint("Is Code Success: $isCodeSuccess");
+    debugPrint("Will Go to Success Path: ${isStatusSuccess && isCodeSuccess}");
+    
+    // Debug transaction data specifically
+    if (transactionResponse?.data != null) {
+      debugPrint("🔍 Transaction Data Debug:");
+      debugPrint("RRN: '${transactionResponse!.data!.rrn}'");
+      debugPrint("TXN Time: '${transactionResponse.data!.txnTime}'");
+      debugPrint("TXN Time is empty: ${transactionResponse.data!.txnTime.isEmpty}");
+    } else {
+      debugPrint("🔍 Transaction Data is null");
+    }
+    
+    // Additional debug for failure conditions
+    if (transactionResponse != null) {
+      debugPrint("🔍 Failure Condition Analysis:");
+      debugPrint("Status is 'fail': ${transactionResponse.status.toLowerCase() == 'fail'}");
+      debugPrint("Code is 0: ${transactionResponse.code == 0}");
+      debugPrint("Code is 417: ${transactionResponse.code == 417}");
+      debugPrint("Message contains 'insufficient': ${transactionResponse.message.toLowerCase().contains('insufficient')}");
+      debugPrint("Message contains 'balance': ${transactionResponse.message.toLowerCase().contains('balance')}");
+    }
+
+    // Get sender name from preferences
+    final preferencesManager = await PreferencesManager.getInstance();
+    final senderName = preferencesManager.userName ?? "You";
+    
+    // Final mounted check before navigation
+    if (!mounted) return;
+
+    if (transactionResponse != null && 
+        transactionResponse.status.toLowerCase() == 'success' && 
+        transactionResponse.code == 1) {
+      // Transaction successful - navigate to transaction details
+      debugPrint("✅ SUCCESS PATH: Transaction completed successfully");
+      debugPrint("✅ SUCCESS PATH: Status='${transactionResponse.status}', Code=${transactionResponse.code}");
+      debugPrint("RRN: ${transactionResponse.data?.rrn}");
+      debugPrint("Transaction Time: ${transactionResponse.data?.txnTime}");
+      
+      debugPrint("🚀 Navigating to Transaction Details (SUCCESS):");
+      debugPrint("Transaction ID: ${transactionResponse.data?.rrn}");
+      debugPrint("Amount: $currentAmount");
+      debugPrint("Timestamp: ${transactionResponse.data?.txnTime}");
+      debugPrint("Is Success: true");
+      
+      // Generate fallback timestamp if server doesn't provide one
+      String? finalTimestamp = transactionResponse.data?.txnTime;
+      if (finalTimestamp == null || finalTimestamp.isEmpty) {
+        finalTimestamp = DateTime.now().toIso8601String();
+        debugPrint("🕒 Generated fallback timestamp: $finalTimestamp");
+      }
+      
+      // Generate fallback transaction ID if server doesn't provide one
+      String? finalTransactionId = transactionResponse.data?.rrn;
+      if (finalTransactionId == null || finalTransactionId.isEmpty) {
+        finalTransactionId = "TXN_${DateTime.now().millisecondsSinceEpoch}";
+        debugPrint("🆔 Generated fallback transaction ID: $finalTransactionId");
+      }
+      
+      final successArgs = TransactionDetailsArguments(
+        transactionType: widget.type,
+        transactionId: finalTransactionId,
+        amount: currentAmount,
+        senderName: senderName,
+        receiverName: widget.receiver,
+        receiverNumber: widget.receiverNumber,
+        timestamp: finalTimestamp,
+        isSuccess: true,
+        errorMessage: null,
+        isInsufficientBalance: false,
+      );
+      
+      debugPrint("🚀 FINAL ARGUMENTS TO TRANSACTION DETAILS (SUCCESS):");
+      debugPrint("isSuccess: ${successArgs.isSuccess}");
+      debugPrint("errorMessage: ${successArgs.errorMessage}");
+      debugPrint("isInsufficientBalance: ${successArgs.isInsufficientBalance}");
+      
+      context.navigateTo(RouteConstants.transactionDetails, arguments: successArgs);
+    } else {
+      // Transaction failed - navigate to transaction details with error
+      debugPrint("❌ FAILURE PATH: Transaction failed");
+      debugPrint("❌ FAILURE PATH: Response is null: ${transactionResponse == null}");
+      if (transactionResponse != null) {
+        debugPrint("❌ FAILURE PATH: Status='${transactionResponse.status}', Code=${transactionResponse.code}");
+      }
+      String errorMessage = "Transaction failed. Please try again.";
+      bool isSuccess = false;
+      bool isInsufficientBalance = false;
+      
+      if (transactionResponse != null) {
+        errorMessage = transactionResponse.message;
+        isSuccess = false;
+        
+        // Check if it's insufficient balance error (code 0, status "Fail", message contains "insufficient")
+        final isCodeZero = transactionResponse.code == 0;
+        final isStatusFail = transactionResponse.status.toLowerCase() == 'fail';
+        final hasInsufficientMessage = transactionResponse.message.toLowerCase().contains('insufficient') ||
+                                      transactionResponse.message.toLowerCase().contains('balance');
+        
+        debugPrint("Error Analysis:");
+        debugPrint("Is Code Zero: $isCodeZero");
+        debugPrint("Is Status Fail: $isStatusFail");
+        debugPrint("Has Insufficient Message: $hasInsufficientMessage");
+        
+        if (isCodeZero && isStatusFail && hasInsufficientMessage) {
+          isInsufficientBalance = true;
+          errorMessage = "Insufficient account balance";
+          debugPrint("✅ Detected as Insufficient Balance Error");
+        } else {
+          debugPrint("❌ Not an insufficient balance error");
+        }
+        
+        debugPrint("❌ Transaction failed: $errorMessage");
+        debugPrint("Status: ${transactionResponse.status}");
+        debugPrint("Code: ${transactionResponse.code}");
+        debugPrint("Is Insufficient Balance: $isInsufficientBalance");
+      } else {
+        debugPrint("❌ Transaction failed: API call returned null");
+        errorMessage = "Network error. Please try again.";
+      }
+      
+      debugPrint("🚀 Navigating to Transaction Details (FAILURE):");
+      debugPrint("Amount: $currentAmount");
+      debugPrint("Error Message: $errorMessage");
+      debugPrint("Is Success: $isSuccess");
+      debugPrint("Is Insufficient Balance: $isInsufficientBalance");
+      
+      // Navigate to transaction details screen with error information
+      final args = TransactionDetailsArguments(
+        transactionType: widget.type,
+        transactionId: null, // No transaction ID for failed transactions
+        amount: currentAmount,
+        senderName: senderName,
+        receiverName: widget.receiver,
+        receiverNumber: widget.receiverNumber,
+        timestamp: null, // No timestamp for failed transactions
+        isSuccess: isSuccess,
+        errorMessage: errorMessage,
+        isInsufficientBalance: isInsufficientBalance,
+      );
+      
+      debugPrint("🚀 FINAL ARGUMENTS TO TRANSACTION DETAILS:");
+      debugPrint("isSuccess: ${args.isSuccess}");
+      debugPrint("errorMessage: ${args.errorMessage}");
+      debugPrint("isInsufficientBalance: ${args.isInsufficientBalance}");
+      
+      context.navigateTo(RouteConstants.transactionDetails, arguments: args);
+    }
+  }
+
+  // Helper method to show transaction result when widget is unmounted
+  void _showTransactionResultUnmounted(TransactionTransferResponseModel transactionResponse) {
+    debugPrint("❌ Widget unmounted, attempting to show transaction result using NavigationService");
+    debugPrint("❌ Transaction response: ${transactionResponse.toJson()}");
+    
+    try {
+      final navigationService = NavigationService();
+      final navigator = navigationService.navigator;
+      
+      final isSuccess = transactionResponse.status.toLowerCase() == 'success' && transactionResponse.code == 1;
+      final isInsufficientBalance = transactionResponse.code == 0 && 
+                                  transactionResponse.status.toLowerCase() == 'fail' &&
+                                  (transactionResponse.message.toLowerCase().contains('insufficient') || 
+                                   transactionResponse.message.toLowerCase().contains('balance'));
+      
+      debugPrint("❌ Showing transaction result: isSuccess=$isSuccess, isInsufficientBalance=$isInsufficientBalance");
+      
+      // First, try to close any open loading dialogs
+      try {
+        if (navigator.canPop()) {
+          navigator.pop(); // Close loading dialog if it exists
+          debugPrint("❌ Closed loading dialog via global navigator");
+        }
+      } catch (e) {
+        debugPrint("❌ Could not close loading dialog: $e");
+      }
+      
+      // Use a timer to ensure navigation happens after dialog is closed
+      Timer(const Duration(milliseconds: 100), () {
+        // Get sender name from preferences
+        PreferencesManager.getInstance().then((preferencesManager) {
+        final senderName = preferencesManager.userName ?? "You";
+        
+        // Generate fallback timestamp if server doesn't provide one
+        String? finalTimestamp = transactionResponse.data?.txnTime;
+        if (finalTimestamp == null || finalTimestamp.isEmpty) {
+          finalTimestamp = DateTime.now().toIso8601String();
+          debugPrint("🕒 Generated fallback timestamp: $finalTimestamp");
+        }
+        
+        // Generate fallback transaction ID if server doesn't provide one
+        String? finalTransactionId = transactionResponse.data?.rrn;
+        if (finalTransactionId == null || finalTransactionId.isEmpty) {
+          finalTransactionId = "TXN_${DateTime.now().millisecondsSinceEpoch}";
+          debugPrint("🆔 Generated fallback transaction ID: $finalTransactionId");
+        }
+        
+        // Navigate to transaction details using the proper routing
+        final args = TransactionDetailsArguments(
+          transactionType: widget.type,
+          transactionId: isSuccess ? finalTransactionId : null,
+          amount: currentAmount,
+          senderName: senderName,
+          receiverName: widget.receiver,
+          receiverNumber: widget.receiverNumber,
+          timestamp: isSuccess ? finalTimestamp : null,
+          isSuccess: isSuccess,
+          errorMessage: transactionResponse.message,
+          isInsufficientBalance: isInsufficientBalance,
+        );
+        
+        debugPrint("❌ Navigating to transaction details with args: isSuccess=${args.isSuccess}, errorMessage=${args.errorMessage}, isInsufficientBalance=${args.isInsufficientBalance}");
+        
+        // Use the routing system
+        navigator.push(
+          MaterialPageRoute(
+            builder: (context) => TransactionDetailsScreen(
+              transactionType: args.transactionType,
+              transactionId: args.transactionId,
+              amount: args.amount,
+              senderName: args.senderName,
+              receiverName: args.receiverName,
+              receiverNumber: args.receiverNumber,
+              timestamp: args.timestamp,
+              isSuccess: args.isSuccess,
+              errorMessage: args.errorMessage,
+              isInsufficientBalance: args.isInsufficientBalance,
+            ),
+          ),
+        );
+        
+        debugPrint("❌ Successfully navigated to transaction details screen");
+        });
+      });
+    } catch (e) {
+      debugPrint("❌ Could not access navigator: $e");
+      debugPrint("❌ This is a limitation - user will need to check transaction history");
+    }
+  }
+
+  // Helper method to show direct transaction success (API call disabled)
+  Future<void> _showDirectTransactionSuccess() async {
+    try {
+      debugPrint("✅ Showing direct transaction success");
+      
+      // Get sender name from preferences
+      final preferencesManager = await PreferencesManager.getInstance();
+      final senderName = preferencesManager.userName ?? "You";
+      
+      // Generate transaction ID and timestamp
+      final transactionId = "TXN_${DateTime.now().millisecondsSinceEpoch}";
+      final timestamp = DateTime.now().toIso8601String();
+      
+      debugPrint("🚀 Direct Transaction Success Details:");
+      debugPrint("Transaction ID: $transactionId");
+      debugPrint("Amount: $currentAmount");
+      debugPrint("Timestamp: $timestamp");
+      debugPrint("Sender: $senderName");
+      debugPrint("Receiver: ${widget.receiver}");
+      debugPrint("Receiver Number: ${widget.receiverNumber}");
+      
+      final successArgs = TransactionDetailsArguments(
+        transactionType: widget.type,
+        transactionId: transactionId,
+        amount: currentAmount,
+        senderName: senderName,
+        receiverName: widget.receiver,
+        receiverNumber: widget.receiverNumber,
+        timestamp: timestamp,
+        isSuccess: true,
+        errorMessage: null,
+        isInsufficientBalance: false,
+      );
+      
+      debugPrint("🚀 FINAL ARGUMENTS TO TRANSACTION DETAILS (DIRECT SUCCESS):");
+      debugPrint("isSuccess: ${successArgs.isSuccess}");
+      debugPrint("errorMessage: ${successArgs.errorMessage}");
+      debugPrint("isInsufficientBalance: ${successArgs.isInsufficientBalance}");
+      
+      context.navigateTo(RouteConstants.transactionDetails, arguments: successArgs);
+    } catch (e) {
+      debugPrint("❌ Error showing direct transaction success: $e");
+    }
+  }
+
+  // Helper method to make transaction transfer API call
+  Future<TransactionTransferResponseModel?> _makeTransactionTransfer() async {
+    try {
+      debugPrint("🔄 Starting transaction transfer API call");
+      debugPrint("🔄 _makeTransactionTransfer method called");
+      
+      // Get user information from preferences
+      final preferencesManager = await PreferencesManager.getInstance();
+      final userId = preferencesManager.userId;
+      
+      if (userId == null || userId.isEmpty) {
+        debugPrint("❌ User ID not found in preferences");
+        return null;
+      }
+
+      // Parse user ID to integer
+      final senderId = int.tryParse(userId);
+      if (senderId == null) {
+        debugPrint("❌ Invalid user ID format: $userId");
+        return null;
+      }
+
+      // Parse receiver ID from widget.userId
+      final receiverId = widget.userId != null ? int.tryParse(widget.userId!) : null;
+      if (receiverId == null) {
+        debugPrint("❌ Invalid receiver ID format: ${widget.userId}");
+        return null;
+      }
+
+      // Create request model
+      final request = TransactionTransferRequestModel(
+        receiverId: receiverId,
+        amount: currentAmount,
+        remarks: remarks,
+      );
+
+      debugPrint("📤 Transaction request: ${request.toJson()}");
+      debugPrint("📝 Remarks being sent: '${remarks ?? 'null'}'");
+
+      // Initialize repository and make API call
+      final client = http.Client();
+      final refreshTokenDataSource = RefreshTokenDataSourceImpl(client: client);
+      final refreshTokenHandler = RefreshTokenHandler(refreshTokenDataSource: refreshTokenDataSource);
+      final dataSource = TransactionTransferDataSourceImpl(
+        client: client,
+        refreshTokenHandler: refreshTokenHandler,
+      );
+      final repository = TransactionTransferRepositoryImpl(dataSource: dataSource);
+
+      final result = await repository.transferMoney(request);
+      debugPrint("🔄 Repository result received: $result");
+      
+      final response = result.fold(
+        (failure) {
+          debugPrint("❌ Transaction failed: ${failure.message}");
+          debugPrint("❌ Failure status code: ${failure.statusCode}");
+          
+          // For insufficient balance errors, we need to create a response model
+          // from the failure to extract the error details
+          if (failure.statusCode == 417 || 
+              (failure.message.toLowerCase().contains('insufficient') || 
+               failure.message.toLowerCase().contains('balance'))) {
+            debugPrint("🔍 Creating response model from insufficient balance failure");
+            final responseModel = TransactionTransferResponseModel(
+              code: failure.statusCode ?? 0,
+              status: "Fail",
+              message: failure.message,
+              data: null,
+            );
+            debugPrint("🔍 Created response model: ${responseModel.toJson()}");
+            return responseModel;
+          }
+          
+          // For other failures, also create a response model
+          final responseModel = TransactionTransferResponseModel(
+            code: failure.statusCode ?? 0,
+            status: "Fail", 
+            message: failure.message,
+            data: null,
+          );
+          debugPrint("🔍 Created response model for other failure: ${responseModel.toJson()}");
+          return responseModel;
+        },
+        (response) {
+          debugPrint("✅ Transaction successful: ${response.toJson()}");
+          return response;
+        },
+      );
+      
+      debugPrint("🔄 Returning response from _makeTransactionTransfer: ${response.toJson()}");
+      return response;
+    } catch (e) {
+      debugPrint("❌ Transaction transfer error: $e");
+      return null;
+    }
+  }
+
+  @override
+  void dispose() {
+    // Dispose nodes without unfocusing to prevent context access issues
+    _noteFocusNode.dispose();
+    _amountFocusNode.dispose();
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = context.watch<ThemeBloc>().state.maybeWhen(
+          loaded: (isDark) => isDark,
+          orElse: () => false,
+        );
+    final theme = Theme.of(context);
+    return Container(
+      decoration: AppThemes.scaffoldBackgroundDecoration(
+          isDark: isDarkMode, isPrimary: true),
+      child: Scaffold(
+        appBar: AppBar(),
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 45),
+          child: Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  widget.type == TransactionType.pay
+                      ? "Paying to ${widget.receiver}"
+                      : "Requesting from ${widget.receiver}",
+                  style: theme.textTheme.labelLarge,
+                ),
+                Text(widget.receiverNumber),
+                const SizedBox(height: 20),
+                // Editable amount field
+                TextFormField(
+                  controller: _amountController,
+                  focusNode: _amountFocusNode,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.displayLarge,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: "0.00",
+                    hintStyle: theme.textTheme.displayLarge?.copyWith(
+                      color: theme.textTheme.displayLarge?.color?.withValues(alpha: 0.3),
+                    ),
+                    // prefixText: "₹ ",
+                    prefixStyle: theme.textTheme.displayLarge,
+                  ),
+                  onChanged: (value) {
+                    // Optional: Add validation or formatting here
+                    debugPrint("Amount changed to: $value");
+                  },
+                ).asGradientBox(context),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: _noteController,
+                  focusNode: _noteFocusNode,
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: "Add a note",
+                    hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.textTheme.bodyLarge?.color
+                          ?.withValues(alpha: 0.3),
+                    ),
+                    alignLabelWithHint: true,
+                  ),
+                ).asGradientBox(context),
+                const SizedBox(height: 20),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _CategoryButton(
+                      icon: Icons.restaurant,
+                      label: 'Food',
+                      isSelected: selectedCategory == 'Food',
+                      onTap: () => setState(() => selectedCategory = 'Food'),
+                      isDarkMode: isDarkMode,
+                    ),
+                    _CategoryButton(
+                      icon: Icons.directions_car,
+                      label: 'Travel',
+                      isSelected: selectedCategory == 'Travel',
+                      onTap: () => setState(() => selectedCategory = 'Travel'),
+                      isDarkMode: isDarkMode,
+                    ),
+                    _CategoryButton(
+                      icon: Icons.shopping_basket,
+                      label: 'Grocery',
+                      isSelected: selectedCategory == 'Grocery',
+                      onTap: () => setState(() => selectedCategory = 'Grocery'),
+                      isDarkMode: isDarkMode,
+                    ),
+                    _CategoryButton(
+                      icon: Icons.shopping_bag,
+                      label: 'Shopping',
+                      isSelected: selectedCategory == 'Shopping',
+                      onTap: () =>
+                          setState(() => selectedCategory = 'Shopping'),
+                      isDarkMode: isDarkMode,
+                    ),
+                    _CategoryButton(
+                      icon: Icons.more_horiz,
+                      label: 'Others',
+                      isSelected: selectedCategory == 'Others',
+                      onTap: () => setState(() => selectedCategory = 'Others'),
+                      isDarkMode: isDarkMode,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor:
+              isDarkMode ? AppColors.iconDarkColor : AppColors.iconLightColor,
+          onPressed: () async {
+            _noteFocusNode.unfocus();
+            FocusScope.of(context).unfocus();
+            // Branch by MFA name: if Face Verification, capture selfie and send; else ask for PIN
+            final prefs = await PreferencesManager.getInstance();
+            final mfaName = (prefs.mfaName ?? '').toLowerCase();
+            if (mfaName == 'face verification') {
+              await _startFaceTransaction();
+              return;
+            }
+
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (BuildContext context) {
+                return OtpBottomSheet(
+                  obscureText: true,
+                  showResendButton: false,
+                  // useAlternateTheme: true,
+                  title: "Enter PIN",
+                  subTitle: "Enter the Transaction PIN to proceed",
+                  buttonText:
+                      widget.type == TransactionType.pay ? "Pay" : "Request",
+                  mobile: widget.receiverNumber,
+                  numberOfFields: 6,
+                  onVerifyTap: (String pin) async {
+                    debugPrint("______________ENTERED PIN____________");
+                    debugPrint("Final Amount: ${_amountController.text}");
+                    debugPrint("Current Amount: $currentAmount");
+                    debugPrint("PIN: $pin");
+                    debugPrint("Note Text: '${_noteController.text}'");
+                    debugPrint("Selected Category: '$selectedCategory'");
+                    debugPrint("Remarks to be sent: '${remarks ?? 'null'}'");
+                    
+                    // Validate amount before proceeding
+                    if (!isAmountValid) {
+                      final errorMessage = amountValidationError ?? "Please enter a valid amount";
+                      if (mounted && context.mounted) {
+                        try {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(errorMessage),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        } catch (e) {
+                          debugPrint("❌ Could not show amount validation error: $e");
+                        }
+                      }
+                      return;
+                    }
+                    
+                    // Validate PIN format first
+                    final pinError = _getPinValidationError(pin);
+                    if (pinError != null) {
+                      if (mounted && context.mounted) {
+                        try {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(pinError),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        } catch (e) {
+                          debugPrint("❌ Could not show PIN format error: $e");
+                        }
+                      }
+                      return;
+                    }
+                    
+                    debugPrint("✅ PIN format valid, proceeding with transaction");
+                    
+                    // Unfocus and close bottom sheet first
+                    if (mounted && context.mounted) {
+                      FocusScope.of(context).unfocus();
+                      Navigator.of(context).pop(); // Close the PIN bottom sheet
+                    }
+                    
+                    // Check if widget is still mounted after closing bottom sheet
+                    if (!mounted) {
+                      debugPrint("❌ Widget unmounted after closing PIN sheet");
+                      return;
+                    }
+
+                    // Show loading indicator with transaction details
+                    if (mounted && context.mounted) {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (BuildContext context) {
+                          return WillPopScope(
+                            onWillPop: () async => false, // Prevent back button
+                            child: AlertDialog(
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const CircularProgressIndicator(),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    "Processing Transaction...",
+                                    style: Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "Please wait while we process your payment",
+                                    style: Theme.of(context).textTheme.bodyMedium,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    }
+
+                    try {
+                      // Build dynamic request based on MFA
+                      final prefs = await PreferencesManager.getInstance();
+                      final mfaName = prefs.mfaName ?? '';
+                      final receiverId = int.tryParse(widget.userId ?? '') ?? 0;
+
+                      String? authData;
+                      String? authFilePath;
+
+                      if (mfaName.toLowerCase() == 'transaction pin') {
+                        final sessionKey = prefs.decryptedSessionKey ?? '';
+                        if (sessionKey.isEmpty) {
+                          throw Exception('Missing session key');
+                        }
+                        // Convert session key to proper AES key length (32 bytes for AES-256)
+                        final sessionKeyBytes = utf8.encode(sessionKey);
+                        final keyBytes = Uint8List(32);
+                        for (int i = 0; i < 32; i++) {
+                          keyBytes[i] = sessionKeyBytes[i % sessionKeyBytes.length];
+                        }
+                        authData = AesGcmUtil.encryptBase64(pin, keyBytes);
+                        debugPrint('Encrypted auth_data (pin) prepared');
+                      } else if (mfaName.toLowerCase() == 'face verification') {
+                        final picker = ImagePicker();
+                        final image = await picker.pickImage(source: ImageSource.camera, preferredCameraDevice: CameraDevice.front);
+                        if (image == null) {
+                          throw Exception('Face capture cancelled');
+                        }
+                        authFilePath = image.path;
+                        debugPrint('Face image captured at: $authFilePath');
+                      }
+
+                      // Prepare request
+                      final req = TransactionTransferRequestModel(
+                        receiverId: receiverId,
+                        amount: currentAmount,
+                        remarks: remarks,
+                        authData: authData,
+                        authFilePath: authFilePath,
+                      );
+
+                      // Call API
+                      final client = http.Client();
+                      final refreshTokenDataSource = RefreshTokenDataSourceImpl(client: client);
+                      final refreshTokenHandler = RefreshTokenHandler(refreshTokenDataSource: refreshTokenDataSource);
+                      final dataSource = TransactionTransferDataSourceImpl(
+                        client: client,
+                        refreshTokenHandler: refreshTokenHandler,
+                      );
+                      final repository = TransactionTransferRepositoryImpl(dataSource: dataSource);
+                      final result = await repository.transferMoney(req);
+                      final transactionResponse = result.fold((l) => TransactionTransferResponseModel(code: l.statusCode ?? 0, status: 'Fail', message: l.message, data: null), (r) => r);
+
+                      // Close loading dialog
+                      if (mounted && context.mounted) {
+                        try {
+                          Navigator.of(context).pop(); // Close loading dialog
+                        } catch (e) {
+                          debugPrint("❌ Could not close loading dialog: $e");
+                        }
+                      }
+                      
+                      // Check if widget is still mounted before accessing context
+                      if (!mounted) {
+                        debugPrint("❌ Widget not mounted, will navigate via NavigationService");
+                        _showTransactionResultUnmounted(transactionResponse);
+                        return;
+                      }
+                      
+                      // Additional safety check - ensure context is still valid
+                      if (!context.mounted) {
+                        debugPrint("❌ Context not mounted, will navigate via NavigationService");
+                        _showTransactionResultUnmounted(transactionResponse);
+                        return;
+                      }
+
+                      // Process transaction response
+                      await _processTransactionResponse(transactionResponse);
+                    } catch (e) {
+                      debugPrint("❌ Error during transaction processing: $e");
+                      debugPrint("❌ Error type: ${e.runtimeType}");
+                      debugPrint("❌ Stack trace: ${StackTrace.current}");
+                      
+                      // Close loading dialog if still open
+                      if (mounted && context.mounted) {
+                        try {
+                          Navigator.of(context).pop(); // Close loading dialog
+                        } catch (e2) {
+                          debugPrint("❌ Could not close loading dialog: $e2");
+                        }
+                      }
+                      
+                      // Show error to user
+                      if (mounted && context.mounted) {
+                        try {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Transaction processing error: $e"),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        } catch (e3) {
+                          debugPrint("❌ Could not show error snackbar: $e3");
+                        }
+                      }
+                    }
+                  },
+                );
+              },
+            );
+          },
+          child: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startFaceTransaction() async {
+    // Validate amount
+    if (!isAmountValid) {
+      final errorMessage = amountValidationError ?? "Please enter a valid amount";
+      if (mounted && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
+        );
+      }
+      return;
+    }
+
+    try {
+      // Use dedicated camera screen with guaranteed front camera
+      final imagePath = await Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => const FaceCaptureScreen()),
+      );
+      if (imagePath == null || imagePath.isEmpty) return;
+
+      if (mounted && context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return WillPopScope(
+              onWillPop: () async => false,
+              child: const AlertDialog(
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text("Processing Transaction..."),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      }
+
+      // Build request
+      final receiverId = int.tryParse(widget.userId ?? '') ?? 0;
+      final req = TransactionTransferRequestModel(
+        receiverId: receiverId,
+        amount: currentAmount,
+        remarks: remarks,
+        authFilePath: imagePath,
+      );
+
+      // Call API
+      final client = http.Client();
+      final refreshTokenDataSource = RefreshTokenDataSourceImpl(client: client);
+      final refreshTokenHandler = RefreshTokenHandler(refreshTokenDataSource: refreshTokenDataSource);
+      final dataSource = TransactionTransferDataSourceImpl(
+        client: client,
+        refreshTokenHandler: refreshTokenHandler,
+      );
+      final repository = TransactionTransferRepositoryImpl(dataSource: dataSource);
+      final result = await repository.transferMoney(req);
+      final transactionResponse = result.fold((l) => TransactionTransferResponseModel(code: l.statusCode ?? 0, status: 'Fail', message: l.message, data: null), (r) => r);
+
+      if (mounted && context.mounted) {
+        try { Navigator.of(context).pop(); } catch (_) {}
+      }
+
+      if (!mounted || !context.mounted) {
+        _showTransactionResultUnmounted(transactionResponse);
+        return;
+      }
+
+      await _processTransactionResponse(transactionResponse);
+    } catch (e) {
+      if (mounted && context.mounted) {
+        try { Navigator.of(context).pop(); } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Face verification failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+}
+
+class _CategoryButton extends StatelessWidget {
+  const _CategoryButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    required this.isSelected,
+    required this.isDarkMode,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isSelected;
+  final bool isDarkMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? isDarkMode
+                  ? AppColors.iconDarkColor
+                  : AppColors.iconLightColor
+              : Colors.transparent,
+          border: Border.all(color: theme.primaryColor),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected ? Colors.white : theme.iconTheme.color,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: isSelected ? Colors.white : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

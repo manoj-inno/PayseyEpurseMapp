@@ -1,0 +1,21 @@
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "epurse-da7c1",
+                    "appId": "1:901484966560:android:01d62e9502eb6f49934fc5",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "ios": {
+                "default": {
+                    "projectId": "epurse-da7c1",
+                    "appId": "1:901484966560:ios:3d46a868e14b517c934fc5",
+                    "uploadDebugSymbols": false,
+                    "fileOutput": "ios/Runner/GoogleService-Info.plist"
+                }
+            }
+        }
+    }
+}

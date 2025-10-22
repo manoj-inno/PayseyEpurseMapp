@@ -1,0 +1,113 @@
+name: epurse
+description: "A new Flutter project."
+version: 1.0.3
+
+environment:
+  sdk: ^3.6.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_local_notifications: ^19.0.0
+  firebase_core: ^3.15.2
+  firebase_messaging: ^15.2.7
+  get_it: ^8.0.3
+  flutter_bloc: ^9.1.1
+  equatable: ^2.0.7
+  flutter_localizations:
+    sdk: flutter
+  shared_preferences: ^2.5.3
+  lottie: ^3.3.1
+  http: ^1.3.0
+  encrypt: ^5.0.3
+  dartz: ^0.10.1
+  shimmer: ^3.0.0
+  image_picker: ^1.1.2
+  camera: ^0.11.0+2
+  connectivity_plus: ^6.1.4
+  path_provider: ^2.1.5
+  intl: ^0.20.2
+  carousel_slider: ^5.0.0
+  flutter_map: ^8.1.1
+  location: ^8.0.0
+  latlong2: ^0.9.1
+  hive_ce: ^2.11.0
+  hive_ce_flutter: ^2.3.0
+  url_launcher: ^6.3.1
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  hive_ce_generator: ^1.9.0
+  build_runner: ^2.4.8
+  freezed: ^2.4.7
+  json_serializable: ^6.7.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+    - lib/core/animation/small-wallet-anim.json
+    - lib/core/animation/purse-anim.json
+    - lib/core/animation/register.json
+    - lib/core/animation/login.json
+    - lib/core/animation/loading_dialog.json
+    - lib/core/animation/dark-loading.json
+    - lib/core/animation/face_matching.json
+    - lib/core/animation/success-reg.json
+    - lib/core/icons/manage-card.png
+    - lib/core/icons/payments.png
+    - lib/core/icons/top-up.png
+    - lib/core/icons/mobile-recharge.png
+    - lib/core/icons/pay-bills.png
+    - lib/core/icons/pay-tax.png
+    - lib/core/icons/credit-card-bills.png
+    - lib/core/assets/card-background.png
+    - lib/core/assets/visa-logo.png
+    - lib/core/animation/readykyc.json
+    - lib/core/assets/server-down.png
+    - lib/core/icons/bank.png
+    - lib/core/icons/atm.png
+    - lib/core/icons/electricity.png
+    - lib/core/icons/water.png
+    - lib/core/icons/gas.png
+    - lib/core/icons/tv.png
+    - lib/core/icons/withdraw.png
+    - lib/core/icons/account-transfer.png
+    - lib/core/icons/account-wallet.png
+    - lib/core/icons/card-transfer.png
+    - lib/core/icons/chequebook.png
+    - lib/core/icons/wallet-account.png
+    - lib/core/assets/atm-machine.png
+    - lib/core/icons/insurance.png
+    - lib/core/icons/loan.png
+    - lib/core/icons/bus.png
+    - lib/core/icons/train.png
+    - lib/core/icons/flight.png
+    - lib/core/icons/hotel.png
+    - lib/core/icons/movie.png
+    - lib/core/icons/slide.png
+    - lib/core/icons/dinner.png
+    - lib/core/icons/activate-card.png
+    - lib/core/icons/order-card.png
+    - lib/core/icons/device-error.png
+    - lib/core/icons/child-card.png
+    - lib/core/icons/child-transactions.png
+    - lib/core/icons/child-account.png
+    - lib/core/icons/topup-child.png
+    
+    
+  fonts:
+    - family: RozhaOne
+      fonts:
+        - asset: lib/core/fonts/RozhaOne-Regular.ttf
+    - family: Roboto
+      fonts:
+        - asset: lib/core/fonts/Roboto-Regular.ttf
+        - asset: lib/core/fonts/Roboto-Bold.ttf
+          weight: 700

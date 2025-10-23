@@ -102,7 +102,7 @@ class _TransactionHelpScreenState extends State<TransactionHelpScreen> {
                 decoration: InputDecoration(
                   border: InputBorder.none,
                 ),
-                value: selectedHelpType,
+                initialValue: selectedHelpType,
                 isExpanded: true,
                 hint: Text("Select help type",
                     style: theme.textTheme.labelMedium),

@@ -257,7 +257,7 @@ class _IncomeDetailsScreenState extends State<IncomeDetailsScreen> {
                               isDense: true,
                             ),
                             style: theme.textTheme.labelMedium,
-                            value: selectedSalaryRange,
+                            initialValue: selectedSalaryRange,
                             items: state.salaryRangeList
                                     ?.map((e) => DropdownMenuItem<
                                             SalaryRangeEntity>(

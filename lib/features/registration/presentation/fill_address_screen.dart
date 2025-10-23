@@ -56,34 +56,39 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     debugPrint('=== FillAddressScreen initState ===');
     debugPrint('Ref Number: ${widget.refNumber}');
     debugPrint('Address Type: ${widget.addressType}');
-    
+
     // Load nationality data when the screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         try {
           // Load nationality data
-          final nationalityBloc = context.read<GetAdditionalPersonalDetailsBloc>();
+          final nationalityBloc =
+              context.read<GetAdditionalPersonalDetailsBloc>();
           if (!nationalityBloc.isClosed) {
-            nationalityBloc.add(const GetAdditionalPersonalDetailsEvent.getNationality());
+            nationalityBloc
+                .add(const GetAdditionalPersonalDetailsEvent.getNationality());
           }
         } catch (e) {
           debugPrint('Error loading nationality data: $e');
         }
-        
+
         // Verify AddressManagementBloc is available
         try {
           final addressBloc = context.read<AddressManagementBloc>();
-          debugPrint('AddressManagementBloc is available: ${addressBloc.runtimeType}');
-          debugPrint('AddressManagementBloc is closed: ${addressBloc.isClosed}');
+          debugPrint(
+              'AddressManagementBloc is available: ${addressBloc.runtimeType}');
+          debugPrint(
+              'AddressManagementBloc is closed: ${addressBloc.isClosed}');
           debugPrint('AddressManagementBloc state: ${addressBloc.state}');
-          
+
           // If the BLoC is closed, try to get a fresh instance from DI
           if (addressBloc.isClosed) {
-            debugPrint('AddressManagementBloc is closed, this might cause issues');
+            debugPrint(
+                'AddressManagementBloc is closed, this might cause issues');
           }
         } catch (e) {
           debugPrint('AddressManagementBloc is not available: $e');
@@ -137,7 +142,7 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
               debugPrint('=== ADDRESS MANAGEMENT BLOC LISTENER ===');
               debugPrint('State: $state');
               debugPrint('State type: ${state.runtimeType}');
-              
+
               if (state is AddressSaved) {
                 debugPrint('Address saved successfully, navigating back');
                 // After successful save/update, reload addresses and navigate back
@@ -165,10 +170,9 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                       addressType: widget.addressType,
                       addressProof: selectedAddressProof?.docType ?? '',
                       addressProofId: selectedAddressProof?.id ?? 0,
-                      addressProofIdNumber:
-                          addressProofIdController.text == ''
-                              ? "1238764"
-                              : addressProofIdController.text,
+                      addressProofIdNumber: addressProofIdController.text == ''
+                          ? "1238764"
+                          : addressProofIdController.text,
                       // Only include image if not a master type
                       addressProofImage:
                           isMasterType ? null : addressProofImage,
@@ -203,10 +207,9 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                       addressTypeId: widget.addressTypeId,
                       addressProofId: selectedAddressProof?.id ?? 0,
                       addressProof: selectedAddressProof?.docType ?? '',
-                      addressProofIdNumber:
-                          addressProofIdController.text == ''
-                              ? " "
-                              : addressProofIdController.text,
+                      addressProofIdNumber: addressProofIdController.text == ''
+                          ? " "
+                          : addressProofIdController.text,
                       // Only include image if not a master type
                       addressProofImage:
                           isMasterType ? null : addressProofImage,
@@ -280,19 +283,23 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                         debugPrint("=== BLOC BUILDER CALLED ===");
                         debugPrint("Address Proof State: $state");
                         debugPrint("State type: ${state.runtimeType}");
-                        
+
                         // Handle initial state - trigger the event
                         if (state is GetAddressDetailsInitial) {
-                          debugPrint("Initial state detected, triggering getAddressProofs event");
+                          debugPrint(
+                              "Initial state detected, triggering getAddressProofs event");
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             try {
-                              final bloc = context.read<GetAddressDetailsBloc>();
+                              final bloc =
+                                  context.read<GetAddressDetailsBloc>();
                               if (!bloc.isClosed) {
-                                bloc.add(GetAddressDetailsEvent.getAddressProofs(
-                                    entityType: widget.customerTypeId));
+                                bloc.add(
+                                    GetAddressDetailsEvent.getAddressProofs(
+                                        entityType: widget.customerTypeId));
                               }
                             } catch (e) {
-                              debugPrint('Error adding getAddressProofs event: $e');
+                              debugPrint(
+                                  'Error adding getAddressProofs event: $e');
                             }
                           });
                           return TextFormField(
@@ -304,11 +311,13 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                             ),
                           ).asGradientBox(context);
                         }
-                        
+
                         if (state is GetAddressProofsLoaded) {
-                          debugPrint("Address Proofs Count: ${state.addressProofs.length}");
-                          debugPrint("Address Proofs: ${state.addressProofs.map((e) => e.docType).toList()}");
-                          
+                          debugPrint(
+                              "Address Proofs Count: ${state.addressProofs.length}");
+                          debugPrint(
+                              "Address Proofs: ${state.addressProofs.map((e) => e.docType).toList()}");
+
                           // If no address proofs, show a message
                           if (state.addressProofs.isEmpty) {
                             debugPrint("No address proofs available");
@@ -321,8 +330,9 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                               ),
                             ).asGradientBox(context);
                           }
-                          
-                          debugPrint("Rendering dropdown with ${state.addressProofs.length} items");
+
+                          debugPrint(
+                              "Rendering dropdown with ${state.addressProofs.length} items");
                           return DropdownButtonFormField<AddressProofEntity>(
                             isExpanded: true,
                             borderRadius: BorderRadius.circular(5),
@@ -335,17 +345,18 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                               border: InputBorder.none,
                               isDense: true,
                             ),
-                            value: selectedAddressProof,
-                            menuMaxHeight: MediaQuery.of(context).size.height * 0.3,
-                            items: state.addressProofs
-                                .map((e) {
-                                  debugPrint("Creating dropdown item: ${e.docType} (entityType: ${e.entityType}, isMaster: ${e.isMaster})");
-                                  return DropdownMenuItem<AddressProofEntity>(
-                                      value: e, child: Text(e.docType));
-                                })
-                                .toList(),
+                            initialValue: selectedAddressProof,
+                            menuMaxHeight:
+                                MediaQuery.of(context).size.height * 0.3,
+                            items: state.addressProofs.map((e) {
+                              debugPrint(
+                                  "Creating dropdown item: ${e.docType} (entityType: ${e.entityType}, isMaster: ${e.isMaster})");
+                              return DropdownMenuItem<AddressProofEntity>(
+                                  value: e, child: Text(e.docType));
+                            }).toList(),
                             onChanged: (value) {
-                              debugPrint("Address proof selected: ${value?.docType}");
+                              debugPrint(
+                                  "Address proof selected: ${value?.docType}");
                               setState(() => selectedAddressProof = value);
                             },
                           ).asGradientBox(context);
@@ -360,7 +371,8 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                             ),
                           ).asGradientBox(context);
                         } else if (state is GetAddressProofsError) {
-                          debugPrint("Address Proof State: Error - ${state.failure}");
+                          debugPrint(
+                              "Address Proof State: Error - ${state.failure}");
                           return TextFormField(
                             readOnly: true,
                             decoration: InputDecoration(
@@ -385,8 +397,11 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                               isDense: true,
                             ),
                             items: [
-                              DropdownMenuItem<String>(value: 'VOTER ID', child: Text('VOTER ID')),
-                              DropdownMenuItem<String>(value: 'SAME AS EKYC DOC', child: Text('SAME AS EKYC DOC')),
+                              DropdownMenuItem<String>(
+                                  value: 'VOTER ID', child: Text('VOTER ID')),
+                              DropdownMenuItem<String>(
+                                  value: 'SAME AS EKYC DOC',
+                                  child: Text('SAME AS EKYC DOC')),
                             ],
                             onChanged: (value) {
                               debugPrint("Fallback dropdown selected: $value");
@@ -440,7 +455,8 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                                 children: [
                                   ListTile(
                                     leading: const Icon(Icons.camera_alt),
-                                    title: Text(localizations.get('take_photo')),
+                                    title:
+                                        Text(localizations.get('take_photo')),
                                     onTap: () {
                                       context.goBack();
                                       _pickImage(ImageSource.camera);
@@ -448,8 +464,8 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                                   ),
                                   ListTile(
                                     leading: const Icon(Icons.photo_library),
-                                    title: Text(
-                                        localizations.get('choose_from_gallery')),
+                                    title: Text(localizations
+                                        .get('choose_from_gallery')),
                                     onTap: () {
                                       context.goBack();
                                       _pickImage(ImageSource.gallery);
@@ -568,7 +584,8 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                     SizedBox(
                       height: 15,
                     ),
-                    RequiredLabelText(text: "Address Line 2", isRequired: false),
+                    RequiredLabelText(
+                        text: "Address Line 2", isRequired: false),
                     SizedBox(
                       height: 3,
                     ),
@@ -607,7 +624,8 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                           flex: 5,
                           child: Column(
                             children: [
-                              RequiredLabelText(text: "State", isRequired: true),
+                              RequiredLabelText(
+                                  text: "State", isRequired: true),
                               SizedBox(
                                 height: 3,
                               ),
@@ -663,13 +681,16 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                               BlocBuilder<GetAdditionalPersonalDetailsBloc,
                                   GetAdditionalPersonalDetailsState>(
                                 builder: (context, state) {
-                                  debugPrint('=== COUNTRY DROPDOWN BLOC BUILDER ===');
+                                  debugPrint(
+                                      '=== COUNTRY DROPDOWN BLOC BUILDER ===');
                                   debugPrint('Country BLoC State: $state');
-                                  debugPrint('State type: ${state.runtimeType}');
-                                  
+                                  debugPrint(
+                                      'State type: ${state.runtimeType}');
+
                                   return state.when(
                                     initial: () {
-                                      debugPrint('Country state: initial - showing fallback dropdown');
+                                      debugPrint(
+                                          'Country state: initial - showing fallback dropdown');
                                       return DropdownButtonFormField<String>(
                                         isExpanded: true,
                                         borderRadius: BorderRadius.circular(5),
@@ -679,21 +700,27 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                                           hintText: 'Loading countries...',
                                         ),
                                         items: const [
-                                          DropdownMenuItem<String>(value: 'India', child: Text('India')),
-                                          DropdownMenuItem<String>(value: 'United States', child: Text('United States')),
+                                          DropdownMenuItem<String>(
+                                              value: 'India',
+                                              child: Text('India')),
+                                          DropdownMenuItem<String>(
+                                              value: 'United States',
+                                              child: Text('United States')),
                                         ],
                                         onChanged: (value) {
                                           if (mounted) {
                                             setState(() {
                                               selectedCountry = value;
-                                              widget.countryController.text = value ?? '';
+                                              widget.countryController.text =
+                                                  value ?? '';
                                             });
                                           }
                                         },
                                       ).asGradientBox(context);
                                     },
                                     loading: () {
-                                      debugPrint('Country state: loading - showing fallback dropdown');
+                                      debugPrint(
+                                          'Country state: loading - showing fallback dropdown');
                                       return DropdownButtonFormField<String>(
                                         isExpanded: true,
                                         borderRadius: BorderRadius.circular(5),
@@ -703,21 +730,27 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                                           hintText: 'Loading countries...',
                                         ),
                                         items: const [
-                                          DropdownMenuItem<String>(value: 'India', child: Text('India')),
-                                          DropdownMenuItem<String>(value: 'United States', child: Text('United States')),
+                                          DropdownMenuItem<String>(
+                                              value: 'India',
+                                              child: Text('India')),
+                                          DropdownMenuItem<String>(
+                                              value: 'United States',
+                                              child: Text('United States')),
                                         ],
                                         onChanged: (value) {
                                           if (mounted) {
                                             setState(() {
                                               selectedCountry = value;
-                                              widget.countryController.text = value ?? '';
+                                              widget.countryController.text =
+                                                  value ?? '';
                                             });
                                           }
                                         },
                                       ).asGradientBox(context);
                                     },
                                     success: (nationalities) {
-                                      debugPrint('Country state: success - ${nationalities.length} nationalities loaded');
+                                      debugPrint(
+                                          'Country state: success - ${nationalities.length} nationalities loaded');
                                       return DropdownButtonFormField<String>(
                                         isExpanded: true,
                                         borderRadius: BorderRadius.circular(5),
@@ -730,8 +763,8 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                                                 DropdownMenuItem<String>(
                                                   value: nationality.name,
                                                   child: Text(nationality.name,
-                                                      style: theme
-                                                          .textTheme.labelMedium),
+                                                      style: theme.textTheme
+                                                          .labelMedium),
                                                 ))
                                             .toList(),
                                         onChanged: (value) {
@@ -747,7 +780,8 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                                       ).asGradientBox(context);
                                     },
                                     failure: (message) {
-                                      debugPrint('Country state: failure - $message - showing fallback dropdown');
+                                      debugPrint(
+                                          'Country state: failure - $message - showing fallback dropdown');
                                       return DropdownButtonFormField<String>(
                                         isExpanded: true,
                                         borderRadius: BorderRadius.circular(5),
@@ -757,14 +791,19 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                                           hintText: 'Error loading countries',
                                         ),
                                         items: const [
-                                          DropdownMenuItem<String>(value: 'India', child: Text('India')),
-                                          DropdownMenuItem<String>(value: 'United States', child: Text('United States')),
+                                          DropdownMenuItem<String>(
+                                              value: 'India',
+                                              child: Text('India')),
+                                          DropdownMenuItem<String>(
+                                              value: 'United States',
+                                              child: Text('United States')),
                                         ],
                                         onChanged: (value) {
                                           if (mounted) {
                                             setState(() {
                                               selectedCountry = value;
-                                              widget.countryController.text = value ?? '';
+                                              widget.countryController.text =
+                                                  value ?? '';
                                             });
                                           }
                                         },
@@ -791,12 +830,13 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
                     onPressed: () {
                       debugPrint('=== SAVE BUTTON PRESSED ===');
                       debugPrint('Button pressed at: ${DateTime.now()}');
-                      
+
                       if (validateFields()) {
                         debugPrint('Validation passed, calling _saveAddress()');
                         _saveAddress();
                       } else {
-                        debugPrint('Validation failed, not calling _saveAddress()');
+                        debugPrint(
+                            'Validation failed, not calling _saveAddress()');
                       }
                     },
                     isDarkMode: isDarkMode,
@@ -887,39 +927,41 @@ class _FillAddressScreenState extends State<FillAddressScreen> {
     debugPrint('Selected Address Proof: ${selectedAddressProof?.docType}');
     debugPrint('Is Master Type: ${selectedAddressProof?.isMaster}');
     debugPrint('Widget mounted: $mounted');
-    
+
     // Check if widget is still mounted
     if (!mounted) {
       debugPrint('Widget is not mounted, cannot save address');
       return;
     }
-    
+
     try {
       // Try to access the AddressManagementBloc (provided at app level)
       final bloc = context.read<AddressManagementBloc>();
-      debugPrint('AddressManagementBloc accessed successfully: ${bloc.runtimeType}');
+      debugPrint(
+          'AddressManagementBloc accessed successfully: ${bloc.runtimeType}');
       debugPrint('BLoC is closed: ${bloc.isClosed}');
       debugPrint('BLoC state: ${bloc.state}');
-      
+
       if (!bloc.isClosed) {
         debugPrint('BLoC is not closed, adding LoadAddressByType event');
-        
+
         // Check if address already exists by trying to load it first
         bloc.add(LoadAddressByType(
           refNumber: widget.refNumber,
           addressType: widget.addressType,
         ));
-        
+
         debugPrint('LoadAddressByType event added successfully');
         // The BlocListener will handle the response and call appropriate save/update
       } else {
         debugPrint('BLoC is closed, cannot add events');
-        showErrorSnackBar(context, 'Address management service is not available. Please restart the app.');
+        showErrorSnackBar(context,
+            'Address management service is not available. Please restart the app.');
       }
     } catch (e) {
       debugPrint('Error accessing AddressManagementBloc: $e');
       debugPrint('Error type: ${e.runtimeType}');
-      
+
       // Show user-friendly error message
       if (mounted) {
         showErrorSnackBar(context, 'Unable to save address. Please try again.');

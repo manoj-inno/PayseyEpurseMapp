@@ -74,7 +74,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 SizedBox(
                   height: 100,
                   child: Transform.scale(
-                    scale: 8.0,
+                    scale: 1.5,
                     child: Lottie.asset(
                       'lib/core/animation/small-wallet-anim.json',
                     ),

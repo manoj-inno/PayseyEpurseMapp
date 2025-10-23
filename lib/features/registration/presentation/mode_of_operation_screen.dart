@@ -101,11 +101,13 @@ class _ModeOfOperationScreenState extends State<ModeOfOperationScreen> {
                         builder: (context, state) {
                           debugPrint('Mode of Operation State: $state');
                           if (state is GetModeOfOperationsSuccess) {
-                            debugPrint('Mode of Operations Count: ${state.modeOfOperations.length}');
-                            debugPrint('Mode of Operations: ${state.modeOfOperations.toString()}');
+                            debugPrint(
+                                'Mode of Operations Count: ${state.modeOfOperations.length}');
+                            debugPrint(
+                                'Mode of Operations: ${state.modeOfOperations.toString()}');
                             return DropdownButtonFormField<String>(
                               isExpanded: true,
-                              value: selectedMode?.modeDesc,
+                              initialValue: selectedMode?.modeDesc,
                               hint: Text(
                                 'Select mode of operation',
                                 style: theme.textTheme.labelMedium,
@@ -118,28 +120,27 @@ class _ModeOfOperationScreenState extends State<ModeOfOperationScreen> {
                               borderRadius: BorderRadius.circular(5),
                               menuMaxHeight:
                                   MediaQuery.of(context).size.height * 0.7,
-                              items: state.modeOfOperations
-                                  .map((modeOfOperation) {
-                                    debugPrint('Creating dropdown item: ${modeOfOperation.modeDesc}');
-                                    return DropdownMenuItem<String>(
-                                      value: modeOfOperation.modeDesc,
-                                      child: Container(
-                                        constraints: BoxConstraints(
-                                          maxWidth: MediaQuery.of(context)
-                                                  .size
-                                                  .width *
+                              items:
+                                  state.modeOfOperations.map((modeOfOperation) {
+                                debugPrint(
+                                    'Creating dropdown item: ${modeOfOperation.modeDesc}');
+                                return DropdownMenuItem<String>(
+                                  value: modeOfOperation.modeDesc,
+                                  child: Container(
+                                    constraints: BoxConstraints(
+                                      maxWidth:
+                                          MediaQuery.of(context).size.width *
                                               0.7,
-                                        ),
-                                        child: Text(
-                                          modeOfOperation.modeDesc,
-                                          style: theme.textTheme.labelMedium,
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 3,
-                                        ),
-                                      ),
-                                    );
-                                  })
-                                  .toList(),
+                                    ),
+                                    child: Text(
+                                      modeOfOperation.modeDesc,
+                                      style: theme.textTheme.labelMedium,
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 3,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                               onChanged: (value) {
                                 setState(() {
                                   selectedMode = state.modeOfOperations
@@ -159,11 +160,13 @@ class _ModeOfOperationScreenState extends State<ModeOfOperationScreen> {
                               ),
                             ).asGradientBox(context);
                           } else if (state is GetModeOfOperationsFailure) {
-                            debugPrint('Mode of Operation State: Failure - ${state.message}');
+                            debugPrint(
+                                'Mode of Operation State: Failure - ${state.message}');
                             return TextFormField(
                               decoration: InputDecoration(
                                 border: InputBorder.none,
-                                hintText: 'Error loading modes: ${state.message}',
+                                hintText:
+                                    'Error loading modes: ${state.message}',
                               ),
                             ).asGradientBox(context);
                           } else if (state is GetModeOfOperationsServerDown) {
@@ -175,7 +178,8 @@ class _ModeOfOperationScreenState extends State<ModeOfOperationScreen> {
                               ),
                             ).asGradientBox(context);
                           }
-                          debugPrint('Mode of Operation State: Unknown - $state');
+                          debugPrint(
+                              'Mode of Operation State: Unknown - $state');
                           return const SizedBox.shrink();
                         },
                       ),

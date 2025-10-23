@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -39,7 +38,7 @@ class BackImageExtractionBloc
       debugPrint("ReferenceId length: ${referenceId.length}");
       debugPrint("ReferenceId isEmpty: ${referenceId.isEmpty}");
       debugPrint("Side: $side");
-      
+
       emit(const BackImageExtractionState.loading());
 
       final tempDir = await Directory.systemTemp.createTemp();

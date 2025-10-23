@@ -178,7 +178,8 @@ class _OccupationScreenState extends State<OccupationScreen> {
                                         isDense: true,
                                       ),
                                       style: theme.textTheme.labelMedium,
-                                      value: state.selectedOccupation?.id,
+                                      initialValue:
+                                          state.selectedOccupation?.id,
                                       items: isOccupationLoading || hasError
                                           ? []
                                           : (state.occupations?.isEmpty ?? true)
@@ -255,7 +256,8 @@ class _OccupationScreenState extends State<OccupationScreen> {
                                         isDense: true,
                                       ),
                                       style: theme.textTheme.labelMedium,
-                                      value: state.selectedSourceFund?.id,
+                                      initialValue:
+                                          state.selectedSourceFund?.id,
                                       items: isSourceFundsLoading || hasError
                                           ? []
                                           : (state.sourceFunds?.isEmpty ?? true)
@@ -439,7 +441,7 @@ class _OccupationScreenState extends State<OccupationScreen> {
                                         isDense: true,
                                       ),
                                       style: theme.textTheme.labelMedium,
-                                      value: selectedSalaryRange?.id,
+                                      initialValue: selectedSalaryRange?.id,
                                       items: state.salaryRangeList
                                               ?.map((e) => DropdownMenuItem(
                                                   value: e.id,

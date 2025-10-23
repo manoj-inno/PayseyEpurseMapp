@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Light Theme Colors
-  static const lightPrimary = Color(0xFFD1F1FF);
+  static const lightPrimary = Color(0xFFD0EADC);
   static const lightSecondary = Color(0xFFFFFFFF);
   static const lightBackground1 = Color(0xFFFFFFFF);
   static const lightBackground2 = Color(0xFFFFFFFF);
-  static const lightButtonStart = Color(0xFF0C7BE7);
-  static const lightButtonEnd = Color(0xFF0094FF);
+  static const lightButtonStart = Color(0xFF2AB461);
+  static const lightButtonEnd = Color(0xFF3CB774);
 
   // Dark Theme Colors - Complementary to light theme
-  static const darkPrimary = Color(0xFF084D92);
-  static const darkSecondary = Color(0xFF0C7BE7);
+  static const darkPrimary = Color(0xFF029C58);
+  static const darkSecondary = Color(0xFF2AB461);
   static const darkBackground1 = Color(0xFFECF6FF);
   static const darkBackground2 = Color(0xFFFFFFF2);
   static const darkButtonStart = Color(0xFF053767);
-  static const darkButtonEnd = Color(0xFF084D92);
+  static const darkButtonEnd = Color(0xFF029C58);
 
   // Text Colors
   static const lightTextPrimary = Color(0xFF000000);
@@ -25,25 +25,25 @@ class AppColors {
   static const darkTextSecondary = Color(0xFF000000);
 
   // Loader Colors
-  static const loaderPrimaryLight = Color(0xFF0C7BE7);
+  static const loaderPrimaryLight = Color(0xFF2AB461);
   static const loaderPrimaryDark = Color(0xFFFFFFFF);
 
   // OTP Colors
   static const otpLightBackground1 = Color(0xFFFFFFFF);
   static const otpLightBackground2 = Color(0xFFF5F5F5);
-  static const otpLightBorder = Color(0xFF0C7BE7);
+  static const otpLightBorder = Color(0xFF2AB461);
 
-  static const otpDarkBackground1 = Color(0xFF084D92);
-  static const otpDarkBackground2 = Color(0xFF0C7BE7);
+  static const otpDarkBackground1 = Color(0xFF029C58);
+  static const otpDarkBackground2 = Color(0xFF2AB461);
   static const otpDarkBorder = Color(0xFFFFFFFF);
 
   static const shimmerBaseLight = Color.fromARGB(255, 114, 196, 255);
   static const shimmerBaseLight2 = Color.fromARGB(255, 223, 242, 255);
   static const shimmerHighlightLight = Color(0xFFFFFFFF);
   static const shimmerBaseDark = Color(0xFF0A3B6A);
-  static const shimmerHighlightDark = Color(0xFF0C7BE7);
+  static const shimmerHighlightDark = Color(0xFF2AB461);
 
-  static const iconLightColor = Color(0xFF0C7BE7);
+  static const iconLightColor = Color(0xFF2AB461);
   static const iconDarkColor = Color(0xFFFFFFFF);
 
   // Progress Indicator Colors
@@ -91,7 +91,7 @@ class AppThemes {
 
   // Add new outlined button styles
   static const lightOutlinedButtonStyle = TextStyle(
-    color: Color(0xFF0C7BE7),
+    color: Color(0xFF2AB461),
     fontSize: 16,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.5,
@@ -208,7 +208,7 @@ class AppThemes {
     useMaterial3: true,
     brightness: Brightness.light,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: Color(0xFF0C7BE7),
+      seedColor: Color(0xFF2AB461),
       brightness: Brightness.light,
     ),
     textTheme: TextTheme(
@@ -335,7 +335,7 @@ class AppThemes {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        side: const BorderSide(color: Color(0xFF0C7BE7), width: 2),
+        side: const BorderSide(color: Color(0xFF2AB461), width: 2),
         textStyle: lightOutlinedButtonStyle,
       ).copyWith(
         foregroundColor:
@@ -432,7 +432,7 @@ class AppThemes {
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: Color(0xFF0C7BE7),
+      seedColor: Color(0xFF2AB461),
       brightness: Brightness.dark,
     ),
     textTheme: TextTheme(
@@ -645,9 +645,9 @@ class AppThemes {
     ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
       color: AppColors.progressIndicatorDarkColor,
-      circularTrackColor: Color(0xFF0C7BE7),
-      linearTrackColor: Color(0xFF0C7BE7),
-      refreshBackgroundColor: Color(0xFF084D92),
+      circularTrackColor: Color(0xFF2AB461),
+      linearTrackColor: Color(0xFF2AB461),
+      refreshBackgroundColor: Color(0xFF029C58),
     ),
   );
 

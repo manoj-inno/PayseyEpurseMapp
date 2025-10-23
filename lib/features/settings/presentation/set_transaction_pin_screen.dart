@@ -14,7 +14,8 @@ class SetTransactionPinScreen extends StatefulWidget {
   const SetTransactionPinScreen({super.key});
 
   @override
-  State<SetTransactionPinScreen> createState() => _SetTransactionPinScreenState();
+  State<SetTransactionPinScreen> createState() =>
+      _SetTransactionPinScreenState();
 }
 
 class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
@@ -28,19 +29,19 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
       List.generate(6, (index) => TextEditingController());
   final List<FocusNode> _passcodeFocusNodes =
       List.generate(6, (index) => FocusNode());
-  
+
   // Individual edit box controllers for transaction PIN (6 digits)
   final List<TextEditingController> _pinControllers =
       List.generate(6, (index) => TextEditingController());
   final List<FocusNode> _pinFocusNodes =
       List.generate(6, (index) => FocusNode());
-  
+
   // Individual edit box controllers for confirm transaction PIN (6 digits)
   final List<TextEditingController> _confirmPinControllers =
       List.generate(6, (index) => TextEditingController());
   final List<FocusNode> _confirmPinFocusNodes =
       List.generate(6, (index) => FocusNode());
-  
+
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -59,7 +60,7 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
     for (var node in _passcodeFocusNodes) {
       node.dispose();
     }
-    
+
     // Dispose PIN controllers and focus nodes
     for (var controller in _pinControllers) {
       controller.dispose();
@@ -67,7 +68,7 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
     for (var node in _pinFocusNodes) {
       node.dispose();
     }
-    
+
     // Dispose confirm PIN controllers and focus nodes
     for (var controller in _confirmPinControllers) {
       controller.dispose();
@@ -75,7 +76,7 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
     for (var node in _confirmPinFocusNodes) {
       node.dispose();
     }
-    
+
     super.dispose();
   }
 
@@ -91,7 +92,9 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load MFA: $e'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Failed to load MFA: $e'),
+            backgroundColor: Colors.red),
       );
     }
   }
@@ -116,7 +119,9 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
               child: Container(
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  gradient: isDarkMode ? AppThemes.darkInputGradient : AppThemes.lightInputGradient,
+                  gradient: isDarkMode
+                      ? AppThemes.darkInputGradient
+                      : AppThemes.lightInputGradient,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isDarkMode
@@ -148,7 +153,8 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
                   decoration: const InputDecoration(
                     counterText: "",
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   ),
                   onChanged: (value) {
                     if (value.isNotEmpty && index < 5) {
@@ -174,7 +180,8 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
       final prefs = await PreferencesManager.getInstance();
       await prefs.setMfaId(_selected!.mfaId);
       await prefs.setMfaName(_selected!.name);
-      debugPrint("🔐 Set MFA ID: ${_selected!.mfaId} and MFA Name: ${_selected!.name}");
+      debugPrint(
+          "🔐 Set MFA ID: ${_selected!.mfaId} and MFA Name: ${_selected!.name}");
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('MFA set successfully')),
@@ -183,7 +190,9 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to set MFA: $e'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Failed to set MFA: $e'),
+            backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -230,27 +239,34 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
                                 children: [
                                   CircleAvatar(
                                     radius: 18,
-                                    backgroundColor: theme.primaryColor.withOpacity(0.12),
-                                    child: Icon(Icons.shield_rounded, color: theme.primaryColor),
+                                    backgroundColor:
+                                        theme.primaryColor.withOpacity(0.12),
+                                    child: Icon(Icons.shield_rounded,
+                                        color: theme.primaryColor),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text('Set transaction verification', style: theme.textTheme.titleMedium),
+                                        Text('Set transaction verification',
+                                            style: theme.textTheme.titleMedium),
                                         const SizedBox(height: 2),
-                                        Text('Choose a simple way to confirm transactions', style: theme.textTheme.bodySmall),
+                                        Text(
+                                            'Choose a simple way to confirm transactions',
+                                            style: theme.textTheme.bodySmall),
                                       ],
                                     ),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              Text('Verification method', style: theme.textTheme.labelLarge),
+                              Text('Verification method',
+                                  style: theme.textTheme.labelLarge),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<MfaOption>(
-                                value: _selected,
+                                initialValue: _selected,
                                 isExpanded: true,
                                 items: _options
                                     .map((e) => DropdownMenuItem<MfaOption>(
@@ -258,13 +274,18 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(e.mfaId == 1 ? Icons.pin : Icons.face_6, size: 18),
+                                              Icon(
+                                                  e.mfaId == 1
+                                                      ? Icons.pin
+                                                      : Icons.face_6,
+                                                  size: 18),
                                               const SizedBox(width: 8),
                                               Flexible(
                                                 fit: FlexFit.loose,
                                                 child: Text(
                                                   e.name,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                             ],
@@ -280,25 +301,36 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
                               const SizedBox(height: 10),
                               Row(
                                 children: [
-                                  Icon(Icons.info_outline, size: 16, color: theme.hintColor),
+                                  Icon(Icons.info_outline,
+                                      size: 16, color: theme.hintColor),
                                   const SizedBox(width: 6),
                                   Expanded(
-                                    child: Text('You can change this anytime in Settings.', style: theme.textTheme.bodySmall),
+                                    child: Text(
+                                        'You can change this anytime in Settings.',
+                                        style: theme.textTheme.bodySmall),
                                   ),
                                 ],
                               ),
-
                               if (_selected?.mfaId == 1) ...[
                                 const SizedBox(height: 16),
                                 Form(
                                   key: _formKey,
                                   child: Column(
                                     children: [
-                                      _buildPasscodeFields(_passcodeControllers, _passcodeFocusNodes, 'Passcode (6 digits)'),
+                                      _buildPasscodeFields(
+                                          _passcodeControllers,
+                                          _passcodeFocusNodes,
+                                          'Passcode (6 digits)'),
                                       const SizedBox(height: 20),
-                                      _buildPasscodeFields(_pinControllers, _pinFocusNodes, 'Transaction PIN (6 digits)'),
+                                      _buildPasscodeFields(
+                                          _pinControllers,
+                                          _pinFocusNodes,
+                                          'Transaction PIN (6 digits)'),
                                       const SizedBox(height: 20),
-                                      _buildPasscodeFields(_confirmPinControllers, _confirmPinFocusNodes, 'Confirm Transaction PIN (6 digits)'),
+                                      _buildPasscodeFields(
+                                          _confirmPinControllers,
+                                          _confirmPinFocusNodes,
+                                          'Confirm Transaction PIN (6 digits)'),
                                     ],
                                   ),
                                 ),
@@ -330,21 +362,26 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
                                 !_validatePasscode(_pinControllers) ||
                                 !_validatePasscode(_confirmPinControllers)) {
                               ScaffoldMessenger.of(ctx).showSnackBar(
-                                const SnackBar(content: Text('Please enter all 6 digits for each field')),
+                                const SnackBar(
+                                    content: Text(
+                                        'Please enter all 6 digits for each field')),
                               );
                               return;
                             }
-                            
+
                             // Check if PINs match
-                            final pin = _getPasscodeFromControllers(_pinControllers);
-                            final confirmPin = _getPasscodeFromControllers(_confirmPinControllers);
+                            final pin =
+                                _getPasscodeFromControllers(_pinControllers);
+                            final confirmPin = _getPasscodeFromControllers(
+                                _confirmPinControllers);
                             if (pin != confirmPin) {
                               ScaffoldMessenger.of(ctx).showSnackBar(
-                                const SnackBar(content: Text('PINs do not match')),
+                                const SnackBar(
+                                    content: Text('PINs do not match')),
                               );
                               return;
                             }
-                            
+
                             await _submitTransactionPin(ctx);
                           } else {
                             await _submit();
@@ -362,7 +399,8 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
                         )
                       : const Text('Set'),
                 ),
@@ -385,7 +423,6 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
     return regex.hasMatch(passcode);
   }
 
-
   Future<void> _submitTransactionPin(BuildContext context) async {
     try {
       setState(() => _submitting = true);
@@ -393,7 +430,8 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
       final sessionKey = prefs.decryptedSessionKey ?? '';
       if (sessionKey.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Missing session key. Please login again.')),
+          const SnackBar(
+              content: Text('Missing session key. Please login again.')),
         );
         return;
       }
@@ -412,7 +450,8 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
       final encryptedPasscode = prefs.userPin ?? '';
       if (encryptedPasscode.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Missing passcode. Please login again.')),
+          const SnackBar(
+              content: Text('Missing passcode. Please login again.')),
         );
         return;
       }
@@ -422,7 +461,8 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
       await mfaDs.setMfa(_selected!.mfaId);
       await prefs.setMfaId(_selected!.mfaId);
       await prefs.setMfaName(_selected!.name);
-      debugPrint("🔐 Set Transaction PIN - MFA ID: ${_selected!.mfaId} and MFA Name: ${_selected!.name}");
+      debugPrint(
+          "🔐 Set Transaction PIN - MFA ID: ${_selected!.mfaId} and MFA Name: ${_selected!.name}");
 
       final ds = TransactionPinDataSourceImpl(client: http.Client());
       await ds.setTransactionPin(
@@ -445,5 +485,3 @@ class _SetTransactionPinScreenState extends State<SetTransactionPinScreen> {
     }
   }
 }
-
-

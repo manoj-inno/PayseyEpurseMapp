@@ -140,7 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           debugPrint(
                               'Settings Screen - Face Login Toggled to: $value');
                         },
-                        activeColor: theme.primaryColor,
+                        activeThumbColor: theme.primaryColor,
                       );
                     },
                   ),

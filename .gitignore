@@ -49,6 +49,7 @@ app.*.map.json
 /android/local.properties
 *.jks
 *.keystore
+.env
 
 # iOS/macOS
 **/ios/**/*.mode1v3
